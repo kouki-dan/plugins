@@ -26,12 +26,6 @@
 #pragma clang diagnostic pop
 }
 
-+ (PHAsset *)getAssetFromPHPickerResult:(PHPickerResult *)result API_AVAILABLE(ios(14)) {
-  PHFetchResult *fetchResult = [PHAsset fetchAssetsWithLocalIdentifiers:@[ result.assetIdentifier ]
-                                                                options:nil];
-  return fetchResult.firstObject;
-}
-
 + (NSString *)saveImageWithOriginalImageData:(NSData *)originalImageData
                                        image:(UIImage *)image
                                     maxWidth:(NSNumber *)maxWidth

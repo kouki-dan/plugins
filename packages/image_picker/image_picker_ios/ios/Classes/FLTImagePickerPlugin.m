@@ -119,7 +119,7 @@ typedef NS_ENUM(NSInteger, ImagePickerClassType) { UIImagePickerClassType, PHPic
   _pickerViewController.presentationController.delegate = self;
   self.callContext = context;
 
-  [self checkPhotoAuthorizationForAccessLevel];
+  [self showPhotoLibraryWithPHPicker:_pickerViewController];
 }
 
 - (void)launchUIImagePickerWithSource:(nonnull FLTSourceSpecification *)source
@@ -136,7 +136,7 @@ typedef NS_ENUM(NSInteger, ImagePickerClassType) { UIImagePickerClassType, PHPic
                                              camera:[self cameraDeviceForSource:source]];
       break;
     case FLTSourceTypeGallery:
-      [self checkPhotoAuthorizationWithImagePicker:imagePickerController];
+      [self showPhotoLibraryWithImagePicker:imagePickerController];
       break;
     default:
       [self sendCallResultWithError:[FlutterError errorWithCode:@"invalid_source"
@@ -234,7 +234,7 @@ typedef NS_ENUM(NSInteger, ImagePickerClassType) { UIImagePickerClassType, PHPic
                                              camera:[self cameraDeviceForSource:source]];
       break;
     case FLTSourceTypeGallery:
-      [self checkPhotoAuthorizationWithImagePicker:imagePickerController];
+      [self showPhotoLibraryWithImagePicker:imagePickerController];
       break;
     default:
       [self sendCallResultWithError:[FlutterError errorWithCode:@"invalid_source"
@@ -324,67 +324,6 @@ typedef NS_ENUM(NSInteger, ImagePickerClassType) { UIImagePickerClassType, PHPic
   }
 }
 
-- (void)checkPhotoAuthorizationWithImagePicker:(UIImagePickerController *)imagePickerController {
-  PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatus];
-  switch (status) {
-    case PHAuthorizationStatusNotDetermined: {
-      [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
-        dispatch_async(dispatch_get_main_queue(), ^{
-          if (status == PHAuthorizationStatusAuthorized) {
-            [self showPhotoLibraryWithImagePicker:imagePickerController];
-          } else {
-            [self errorNoPhotoAccess:status];
-          }
-        });
-      }];
-      break;
-    }
-    case PHAuthorizationStatusAuthorized:
-      [self showPhotoLibraryWithImagePicker:imagePickerController];
-      break;
-    case PHAuthorizationStatusDenied:
-    case PHAuthorizationStatusRestricted:
-    default:
-      [self errorNoPhotoAccess:status];
-      break;
-  }
-}
-
-- (void)checkPhotoAuthorizationForAccessLevel API_AVAILABLE(ios(14)) {
-  PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatus];
-  switch (status) {
-    case PHAuthorizationStatusNotDetermined: {
-      [PHPhotoLibrary
-          requestAuthorizationForAccessLevel:PHAccessLevelReadWrite
-                                     handler:^(PHAuthorizationStatus status) {
-                                       dispatch_async(dispatch_get_main_queue(), ^{
-                                         if (status == PHAuthorizationStatusAuthorized) {
-                                           [self
-                                               showPhotoLibraryWithPHPicker:self->
-                                                                            _pickerViewController];
-                                         } else if (status == PHAuthorizationStatusLimited) {
-                                           [self
-                                               showPhotoLibraryWithPHPicker:self->
-                                                                            _pickerViewController];
-                                         } else {
-                                           [self errorNoPhotoAccess:status];
-                                         }
-                                       });
-                                     }];
-      break;
-    }
-    case PHAuthorizationStatusAuthorized:
-    case PHAuthorizationStatusLimited:
-      [self showPhotoLibraryWithPHPicker:_pickerViewController];
-      break;
-    case PHAuthorizationStatusDenied:
-    case PHAuthorizationStatusRestricted:
-    default:
-      [self errorNoPhotoAccess:status];
-      break;
-  }
-}
-
 - (void)errorNoCameraAccess:(AVAuthorizationStatus)status {
   switch (status) {
     case AVAuthorizationStatusRestricted:
@@ -398,24 +337,6 @@ typedef NS_ENUM(NSInteger, ImagePickerClassType) { UIImagePickerClassType, PHPic
       [self sendCallResultWithError:[FlutterError
                                         errorWithCode:@"camera_access_denied"
                                               message:@"The user did not allow camera access."
-                                              details:nil]];
-      break;
-  }
-}
-
-- (void)errorNoPhotoAccess:(PHAuthorizationStatus)status {
-  switch (status) {
-    case PHAuthorizationStatusRestricted:
-      [self sendCallResultWithError:[FlutterError
-                                        errorWithCode:@"photo_access_restricted"
-                                              message:@"The user is not allowed to use the photo."
-                                              details:nil]];
-      break;
-    case PHAuthorizationStatusDenied:
-    default:
-      [self sendCallResultWithError:[FlutterError
-                                        errorWithCode:@"photo_access_denied"
-                                              message:@"The user did not allow photo access."
                                               details:nil]];
       break;
   }
